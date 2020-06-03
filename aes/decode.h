@@ -43,7 +43,7 @@ using namespace std;
 *   caja de Rijndael. Esta tabla consiste en sustituciones de 256 bytes contenidas en un arreglo
 *   de 16x16.
 */
-void subBytes(unsigned char * state)
+void invsubBytes(unsigned char * state)
 {
 	for (int i = 0; i < 16; i++)
     {
@@ -58,7 +58,7 @@ void subBytes(unsigned char * state)
 *   De manera que los bits se van recorriendo hacia la izquierda, estos reaparecen en la parte
 *   derecha. Esta operación es conocida comúnmente como rotación. --> DIFUSIÓN
 */
-void shiftRows(unsigned char * state)
+void invshiftRows(unsigned char * state)
 {
 	unsigned char tmp[16];
 
@@ -126,7 +126,7 @@ void inverseMixColumns(unsigned char * state)
 *   en el input es sumado al bit correspondiente en la llave del ciclo, guardando el mod 2
 *   del resultado en el estado. --> XOR
 */
-void addRoundKey(unsigned char * state, unsigned char * roundKey)
+void invaddRoundKey(unsigned char * state, unsigned char * roundKey)
 {
 	for (int i = 0; i < 16; i++)
     {
@@ -141,18 +141,18 @@ void aes_decrypt(unsigned char * encryptedMessage, unsigned char * key, unsigned
     {
 		state[i] = encryptedMessage[i];
 	}
-    addRoundKey(state, key+160);
-	shiftRows(state);
-	subBytes(state);
+    invaddRoundKey(state, key+160);
+	invshiftRows(state);
+	invsubBytes(state);
 	int numberOfRounds = 9;
 	for (int i = 8; i >= 0; i--)
     {
-        addRoundKey(state, key + (16 * (i + 1)));
+        invaddRoundKey(state, key + (16 * (i + 1)));
         inverseMixColumns(state);
-        shiftRows(state);
-        subBytes(state);
+        invshiftRows(state);
+        invsubBytes(state);
 	}
-	addRoundKey(state, key);
+	invaddRoundKey(state, key);
 	for (int i = 0; i < 16; i++)
     {
 		decryptedMessage[i] = state[i];

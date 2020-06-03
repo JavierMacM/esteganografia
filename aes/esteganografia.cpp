@@ -10,15 +10,16 @@
 * Referencias:
 *----------------------------------------*/
 #include "steg.h"
+#include "encode.h"
 using namespace std;
 int main(int argc, char *argv[]) {
 	FILE *imgFile, *msgFile, *imgFile2;
-	int modo_ejecucion, count=0;
+	int modo_ejecucion, count = 0;
 	char tempFileImg, temp, msg_temp;
 // Comprobar que estamos dando los parametros correectos para ejecutar el programa
 	if(argc != 5)
 	{
-        cout<<"Error, no hay parametros necesarios, [-a]: Agregar texto a la imagen  [-o]:Obtener texto en imagen <imagen fuente> <imagen destino> <mensaje.txt>";
+        cout<<"Error, no hay parametros necesarios, [-a]: Agregar texto a la imagen  [-o]:Obtener texto en imagen <imagen fuente> <imagen destino>";
 		exit(1);
 	}
 // Revisar el modo_ejecucion de ejecucion del sistema, a para agregar texto, o para obtener texto
@@ -60,11 +61,72 @@ int main(int argc, char *argv[]) {
 //abrimos el 4 argumento, texto a guardar en la imagen (-a abrir regresara true )
 	if(modo_ejecucion)
 	{
+		// Mensaje a encriptar.
+		cout<<"Mensaje a cifrar: ";
+		char mensaje[1024];
+		cin.getline(mensaje, sizeof(mensaje));
+		cout<<endl;
+		// Para esta implementación, estaremos utilizando una llave de 16 bytes.
+		unsigned char key[16];
+		cout<<"Clave privada a 16 dígitos: ";
+		for (int i = 0; i < 16; i++)
+		{
+			scanf("%hhu", &key[i]);
+		}
+		int originalLength = strlen((const char*)mensaje);
+		int lengthPMessage = originalLength;
+		// Revisar si el mensaje cabe en 16 bytes
+		if (lengthPMessage % 16 != 0)
+		{
+			lengthPMessage = (lengthPMessage / 16 + 1) * 16;
+		}
+		unsigned char * pMessage = new unsigned char[lengthPMessage];
+		for (int i = 0; i < lengthPMessage; i++)
+		{
+			if (i >= originalLength)
+			{
+				pMessage[i] = 0;
+			}
+			else
+			{
+				pMessage[i] = mensaje[i];
+			}
+		}
+		unsigned char * encryptedMessage = new unsigned char[lengthPMessage];
+		// Encriptar mensaje
+		for (int i = 0; i < lengthPMessage; i+=16)
+		{
+			aes_encrypt(pMessage+i, key);
+		}
+		// Imprimir mensaje encriptado
+		cout<<endl;
+		cout <<"Mensaje cifrado en hexadecimal: "<<endl;
+		for (int i = 0; i < lengthPMessage; i++)
+		{
+			printHexadecimal(pMessage[i], i, encryptedMessage);
+			cout<<" ";
+		}
+		cout<<endl<<endl;
+		// Write file with encrypted message
+		ofstream outfile;
+		outfile.open("topsecret.aes", ios::out | ios::binary);
+		if (outfile.is_open())
+		{
+			outfile<<pMessage;
+			outfile.close();
+			cout<<"Operación exitosa: Archivo topsecret.aes creado"<<endl;
+		}
+		else
+		{
+			cout<<"Operación fallida: El archivo topsecret.aes no fue creado"<<endl;
+		}
+		delete[] pMessage;
+		delete[] encryptedMessage;
 		msgFile = fopen(argv[4], "r");
 		if (msgFile== NULL)
 		{
 			//si el archivo txt no se abre mandar mensaje de error
-			cout<<stderr, "NO se pudo abrir el archivo de texto %s\n", argv[4];
+			cout<<stderr, "NO se pudo abrir el archivo de texto %s\n", "topsecret.aes";
 			exit(1);
 		}
 
@@ -105,8 +167,8 @@ int main(int argc, char *argv[]) {
 			}
 			else
 			{
-				tempFileImg=fgetc(imgFile);
-				fputc(tempFileImg,imgFile2);
+				tempFileImg = fgetc(imgFile);
+				fputc(tempFileImg, imgFile2);
 				count++;
 			}
 		}while(!feof(imgFile));
@@ -115,17 +177,17 @@ int main(int argc, char *argv[]) {
 	//En caso de estar en modo_ejecucion -o obtener mensaje se ejecuta lo siguiente
 	else
 	{
-		msgFile=fopen(argv[4],"w");
-		if (msgFile== NULL)
+		msgFile = fopen(argv[4], "w");
+		if (msgFile == NULL)
 		{
 			// abrir el archivo de texto y si nos e puede abrir mandar mensaje de error
-			cout<< stderr, "Can't open text input file %s\n",argv[4];
+			cout<< stderr, "Can't open text input file %s\n", argv[4];
 			exit(1);
 		}
 		//Obtenemos el tamaño del mensaje en la imagen
 		int msg_lenght = fgetc(imgFile);
 		//recorremos el tamaño del mensaje
-		for(int i=0;i<msg_lenght;i++)
+		for(int i = 0;i < msg_lenght; i++)
 		{
 			char temp_ch = '\0';
 			for(int j = 0; j < 8; j++) {
